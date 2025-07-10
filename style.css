@@ -60,7 +60,7 @@ body.dark {
   width: 100%;
   padding: 12px;
   border-radius: 8px;
-  background: #5f3dc4;
+  background: #3b02e6;
   color: white;
   font-size: 1rem;
   border: none;
@@ -69,7 +69,7 @@ body.dark {
 }
 
 .btn-primary:hover {
-  background: #7c3aed;
+  background: #0682e7;
 }
 
 .entry-list {
@@ -139,7 +139,7 @@ body.dark {
 }
 
 .bottom-nav button:hover {
-  color: #a78bfa;
+  color: #4000ffe8;
 }
 
 .setting-group {
@@ -190,7 +190,7 @@ body.dark {
 }
 
 input:checked + .slider {
-  background-color: #5f3dc4;
+  background-color: #0c9440;
 }
 
 input:checked + .slider:before {
@@ -220,7 +220,7 @@ input:checked + .slider:before {
 }
 
 .lang-btn.active {
-  background: #5f3dc4;
+  background: #0d42d4;
   transform: scale(1.1);
 }
 
