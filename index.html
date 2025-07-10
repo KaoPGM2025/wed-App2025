@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FlowLedger 2025</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <main id="app">
+    <section id="home" class="page active">
+      <h1 class="title" data-i18n="title">FlowLedger 2025</h1>
+
+      <form id="entry-form" class="flow-form">
+        <div class="input-group">
+          <label for="desc" data-i18n="descLabel">คำอธิบาย</label>
+          <input type="text" id="desc" required />
+        </div>
+        <div class="input-group">
+          <label for="type" data-i18n="typeLabel">ประเภท</label>
+          <select id="type">
+            <option value="income" data-i18n="income">รายรับ</option>
+            <option value="expense" data-i18n="expense">รายจ่าย</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label for="amount" data-i18n="amountLabel">จำนวนเงิน</label>
+          <input type="number" id="amount" required min="0.01" step="0.01" />
+        </div>
+        <button type="submit" class="btn-primary" data-i18n="add">เพิ่มรายการ</button>
+      </form>
+
+      <ul id="entries-list" class="entry-list"></ul>
+
+      <div class="summary">
+        <p>💰 Income: <span id="income">0.00</span></p>
+        <p>💸 Expenses: <span id="expense">0.00</span></p>
+        <p>🧾 Balance: <span id="balance">0.00</span></p>
+      </div>
+    </section>
+
+    <section id="chart-report" class="page">
+      <h2 data-i18n="chart">📊 รายงานกราฟ</h2>
+      <canvas id="pieChart"></canvas>
+    </section>
+
+    <section id="settings" class="page">
+      <h2 data-i18n="settings">⚙️ ตั้งค่า</h2>
+
+      <div class="setting-group">
+        <label class="switch-label" data-i18n="system">ระบบ</label>
+        <label class="switch">
+          <input type="checkbox" id="system-toggle" />
+          <span class="slider"></span>
+        </label>
+        <span id="system-status">ออฟไลน์</span>
+      </div>
+
+      <div class="setting-group">
+        <label class="switch-label" data-i18n="darkmode">โหมดกลางคืน</label>
+        <label class="switch">
+          <input type="checkbox" id="darkmode-toggle" />
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-group lang-select-group">
+        <label class="switch-label" data-i18n="language">ภาษา</label>
+        <div class="lang-options">
+          <button class="lang-btn" data-lang="th">🇹🇭 ไทย</button>
+          <button class="lang-btn" data-lang="en">🇬🇧 English</button>
+        </div>
+      </div>
+
+      <p class="version">FlowLedger 2025</p>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <button onclick="showPage('home')" data-i18n="menu_home">หน้าหลัก</button>
+    <button onclick="showPage('chart-report')" data-i18n="menu_chart">รายงาน</button>
+    <button onclick="showPage('settings')" data-i18n="menu_settings">ตั้งค่า</button>
+  </nav>
+
+  <script src="script.js"></script>
+</body>
+</html>
