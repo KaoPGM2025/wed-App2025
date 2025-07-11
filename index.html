@@ -1,88 +1,269 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th" class="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>FlowLedger 2025</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>รายรับ-รายจ่าย 2025</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = { darkMode: 'class' }
+  </script>
 </head>
-<body>
-  <main id="app">
-    <section id="home" class="page active">
-      <h1 class="title" data-i18n="title">FlowLedger 2025</h1>
+<body class="bg-white dark:bg-gray-900 text-gray-800 dark:text-white transition-all duration-300">
+  <div id="app" class="min-h-screen pb-24 px-4 pt-4">
+    <div id="content"></div>
+  </div>
 
-      <form id="entry-form" class="flow-form">
-        <div class="input-group">
-          <label for="desc" data-i18n="descLabel">คำอธิบาย</label>
-          <input type="text" id="desc" required />
-        </div>
-        <div class="input-group">
-          <label for="type" data-i18n="typeLabel">ประเภท</label>
-          <select id="type">
-            <option value="income" data-i18n="income">รายรับ</option>
-            <option value="expense" data-i18n="expense">รายจ่าย</option>
-          </select>
-        </div>
-        <div class="input-group">
-          <label for="amount" data-i18n="amountLabel">จำนวนเงิน</label>
-          <input type="number" id="amount" required min="0.01" step="0.01" />
-        </div>
-        <button type="submit" class="btn-primary" data-i18n="add">เพิ่มรายการ</button>
-      </form>
-
-      <ul id="entries-list" class="entry-list"></ul>
-
-      <div class="summary">
-        <p>💰 Income: <span id="income">0.00</span></p>
-        <p>💸 Expenses: <span id="expense">0.00</span></p>
-        <p>🧾 Balance: <span id="balance">0.00</span></p>
-      </div>
-    </section>
-
-    <section id="chart-report" class="page">
-      <h2 data-i18n="chart">📊 รายงานกราฟ</h2>
-      <canvas id="pieChart"></canvas>
-    </section>
-
-    <section id="settings" class="page">
-      <h2 data-i18n="settings">⚙️ ตั้งค่า</h2>
-
-      <div class="setting-group">
-        <label class="switch-label" data-i18n="system">ระบบ</label>
-        <label class="switch">
-          <input type="checkbox" id="system-toggle" />
-          <span class="slider"></span>
-        </label>
-        <span id="system-status">ออฟไลน์</span>
-      </div>
-
-      <div class="setting-group">
-        <label class="switch-label" data-i18n="darkmode">โหมดกลางคืน</label>
-        <label class="switch">
-          <input type="checkbox" id="darkmode-toggle" />
-          <span class="slider"></span>
-        </label>
-      </div>
-
-      <div class="setting-group lang-select-group">
-        <label class="switch-label" data-i18n="language">ภาษา</label>
-        <div class="lang-options">
-          <button class="lang-btn" data-lang="th">🇹🇭 ไทย</button>
-          <button class="lang-btn" data-lang="en">🇬🇧 English</button>
-        </div>
-      </div>
-
-      <p class="version">FlowLedger 2025</p>
-    </section>
-  </main>
-
-  <nav class="bottom-nav">
-    <button onclick="showPage('home')" data-i18n="menu_home">หน้าหลัก</button>
-    <button onclick="showPage('chart-report')" data-i18n="menu_chart">รายงาน</button>
-    <button onclick="showPage('settings')" data-i18n="menu_settings">ตั้งค่า</button>
+  <nav
+    class="fixed bottom-0 left-0 right-0 bg-gray-200 dark:bg-gray-800 border-t flex justify-around py-2 text-sm z-50"
+  >
+    <button id="btnHome" class="flex flex-col items-center" aria-label="หน้าหลัก">
+      🏠<span>หน้าหลัก</span>
+    </button>
+    <button id="btnSaving" class="flex flex-col items-center" aria-label="ออมเงิน">
+      💰<span>ออมเงิน</span>
+    </button>
+    <button id="btnSettings" class="flex flex-col items-center" aria-label="ตั้งค่า">
+      ⚙️<span>ตั้งค่า</span>
+    </button>
   </nav>
 
-  <script src="script.js"></script>
+  <script>
+    let entries = JSON.parse(localStorage.getItem('entries2025') || '[]');
+    let chart;
+    let onlineMode = true;
+    let isDark = true;
+
+    const content = document.getElementById('content');
+
+    // โหลดธีมตอนเริ่ม
+    if (localStorage.getItem('isDark') === 'false') {
+      isDark = false;
+      document.documentElement.classList.remove('dark');
+    } else {
+      isDark = true;
+      document.documentElement.classList.add('dark');
+    }
+
+    if (localStorage.getItem('onlineMode') === 'false') {
+      onlineMode = false;
+    } else {
+      onlineMode = true;
+    }
+
+    function updateSummary() {
+      const income = entries
+        .filter((e) => e.amount > 0)
+        .reduce((sum, e) => sum + e.amount, 0);
+      const expense = entries
+        .filter((e) => e.amount < 0)
+        .reduce((sum, e) => sum + Math.abs(e.amount), 0);
+      const balance = income - expense;
+
+      document.getElementById('income').textContent = income;
+      document.getElementById('expense').textContent = expense;
+      document.getElementById('balance').textContent = balance;
+
+      updateChart(income, expense);
+    }
+
+    function updateChart(income, expense) {
+      const ctx = document.getElementById('pieChart').getContext('2d');
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: ['รายรับ', 'รายจ่าย'],
+          datasets: [
+            {
+              data: [income, expense],
+              backgroundColor: ['#34D399', '#F87171'],
+              borderWidth: 1,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' },
+          },
+        },
+      });
+    }
+
+    function renderEntries() {
+      const list = document.getElementById('history');
+      list.innerHTML = '';
+      entries.forEach((e, i) => {
+        const li = document.createElement('li');
+        li.className = `flex justify-between p-2 rounded ${
+          e.amount > 0
+            ? 'bg-green-50 dark:bg-green-800'
+            : 'bg-red-50 dark:bg-red-800'
+        }`;
+        li.innerHTML = `<span>${e.desc}</span><span>${e.amount} ฿ <button onclick="removeEntry(${i})" class="text-xs text-red-500 ml-2">ลบ</button></span>`;
+        list.appendChild(li);
+      });
+      updateSummary();
+    }
+
+    function removeEntry(index) {
+      entries.splice(index, 1);
+      localStorage.setItem('entries2025', JSON.stringify(entries));
+      renderEntries();
+    }
+
+    function loadHome() {
+      if (!onlineMode) {
+        content.innerHTML =
+          '<div class="text-red-500 text-center mt-10">🚫 ระบบออฟไลน์ กรุณาเปิดออนไลน์ในเมนูตั้งค่า</div>';
+        return;
+      }
+      content.innerHTML = `
+        <h1 class="text-2xl font-bold mb-4">หน้าหลัก</h1>
+        <form id="entryForm" class="space-y-2 mb-4">
+          <input type="text" id="desc" placeholder="รายละเอียด" required class="w-full p-2 rounded bg-gray-100 dark:bg-gray-700" />
+          <select id="type" required class="w-full p-2 rounded bg-gray-100 dark:bg-gray-700">
+            <option value="" disabled selected>เลือกประเภท</option>
+            <option value="income">รายรับ</option>
+            <option value="expense">รายจ่าย</option>
+          </select>
+          <input type="number" id="amount" placeholder="จำนวนเงิน" min="0.01" step="0.01" required class="w-full p-2 rounded bg-gray-100 dark:bg-gray-700" />
+          <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">เพิ่มรายการ</button>
+        </form>
+        <div id="summary" class="grid grid-cols-3 gap-2 text-center mb-4">
+          <div class="bg-green-100 dark:bg-green-700 p-2 rounded">รายรับ<br><span id="income">0</span> ฿</div>
+          <div class="bg-red-100 dark:bg-red-700 p-2 rounded">รายจ่าย<br><span id="expense">0</span> ฿</div>
+          <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded">คงเหลือ<br><span id="balance">0</span> ฿</div>
+        </div>
+        <div class="w-full max-w-xs mx-auto" style="height: 200px;">
+          <canvas id="pieChart"></canvas>
+        </div>
+        <ul id="history" class="space-y-2 mt-4"></ul>
+      `;
+
+      document.getElementById('entryForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const desc = document.getElementById('desc').value.trim();
+        const type = document.getElementById('type').value;
+        let amount = parseFloat(document.getElementById('amount').value);
+        if (!desc || !type || isNaN(amount)) return;
+
+        if (type === 'expense') amount = -Math.abs(amount);
+        else amount = Math.abs(amount);
+
+        entries.push({ desc, amount });
+        localStorage.setItem('entries2025', JSON.stringify(entries));
+        e.target.reset();
+        renderEntries();
+      });
+
+      renderEntries();
+    }
+
+    function loadSaving() {
+      if (!onlineMode) {
+        content.innerHTML =
+          '<div class="text-red-500 text-center mt-10">🚫 ระบบออฟไลน์ กรุณาเปิดออนไลน์ในเมนูตั้งค่า</div>';
+        return;
+      }
+      content.innerHTML = `
+        <h1 class="text-2xl font-bold mb-4">ออมเงิน</h1>
+        <p class="text-gray-400">🔧 อยู่ระหว่างพัฒนา</p>
+      `;
+    }
+
+    function loadSettings() {
+      content.innerHTML = `
+        <h1 class="text-2xl font-bold mb-4">⚙️ การตั้งค่า</h1>
+
+        <div class="bg-white dark:bg-gray-800 shadow-lg rounded-2xl p-4 mb-6 border dark:border-gray-700 transition-all">
+          <h2 class="font-semibold text-lg mb-3 text-gray-700 dark:text-gray-300">🌐 ระบบ</h2>
+          <div class="flex items-center justify-between py-2 border-b dark:border-gray-600">
+            <div>
+              <p class="text-sm font-medium text-gray-700 dark:text-gray-300">โหมดออนไลน์</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">เปิด/ปิดการทำงานของระบบ</p>
+            </div>
+            <label class="inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="onlineToggle" class="sr-only peer" />
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:bg-green-500 relative transition-all">
+                <span class="absolute left-1 top-0.5 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-5"></span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 shadow-lg rounded-2xl p-4 border dark:border-gray-700 transition-all">
+          <h2 class="font-semibold text-lg mb-3 text-gray-700 dark:text-gray-300">🌓 ธีม</h2>
+          <div class="flex items-center justify-between py-2">
+            <div>
+              <p class="text-sm font-medium text-gray-700 dark:text-gray-300">โหมดกลางคืน</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">ปรับหน้าจอให้มืดหรือสว่าง</p>
+            </div>
+            <label class="inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="darkToggle" class="sr-only peer" />
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:bg-blue-600 relative transition-all">
+                <span class="absolute left-1 top-0.5 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-5"></span>
+              </div>
+            </label>
+          </div>
+        </div>
+      `;
+
+      setTimeout(() => {
+        const onlineToggle = document.getElementById('onlineToggle');
+        const darkToggle = document.getElementById('darkToggle');
+
+        onlineToggle.checked = onlineMode;
+        darkToggle.checked = isDark;
+
+        onlineToggle.addEventListener('change', () => {
+          onlineMode = onlineToggle.checked;
+          localStorage.setItem('onlineMode', onlineMode);
+          if (!onlineMode && currentPage !== 'settings') {
+            loadHome();
+          }
+        });
+
+        darkToggle.addEventListener('change', () => {
+          isDark = darkToggle.checked;
+          localStorage.setItem('isDark', isDark);
+          document.documentElement.classList.toggle('dark', isDark);
+        });
+      }, 0);
+    }
+
+    let currentPage = 'home';
+
+    function updateActiveButton() {
+      document.querySelectorAll('nav button').forEach((btn) => {
+        btn.classList.remove('text-blue-600');
+      });
+      if (currentPage === 'home') {
+        document.getElementById('btnHome').classList.add('text-blue-600');
+      } else if (currentPage === 'saving') {
+        document.getElementById('btnSaving').classList.add('text-blue-600');
+      } else if (currentPage === 'settings') {
+        document.getElementById('btnSettings').classList.add('text-blue-600');
+      }
+    }
+
+    function navigate(page) {
+      currentPage = page;
+      updateActiveButton();
+
+      if (page === 'home') loadHome();
+      else if (page === 'saving') loadSaving();
+      else if (page === 'settings') loadSettings();
+    }
+
+    document.getElementById('btnHome').addEventListener('click', () => navigate('home'));
+    document.getElementById('btnSaving').addEventListener('click', () => navigate('saving'));
+    document.getElementById('btnSettings').addEventListener('click', () => navigate('settings'));
+
+    navigate(currentPage);
+  </script>
 </body>
 </html>
